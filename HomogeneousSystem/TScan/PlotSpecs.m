@@ -13,12 +13,13 @@ tAxis = dlmread(strcat(Folder,'tAxis.dat'),'\t');
 
 TAxis = TAxis.*1E12;    % Convert to ps
 tAxis = tAxis.*1E12;    % Convert to ps
-Size = size(tAxis,2);
+Size_t = size(tAxis,2);
+Size_T = size(TAxis,2);
 XPts = size(kAxis,2);
 
 %% Read files
 ESig_X = dlmread(strcat(Folder,'ESig_X.dat'),'\t');
-ESig_X = reshape(ESig_X,Size,Size,[]);
+ESig_X = reshape(ESig_X,Size_T,Size_t,[]);
 ESig_K = fft(ESig_X,[],3);
 
 proj1 = sum(sum(abs(ESig_K),2),1);
@@ -31,9 +32,9 @@ saveas(gcf, strcat(Folder, 'WaveVect'), 'emf');
 
 %% K-time 2Dplots
 ESig_K_t = sum(abs(ESig_K),1);
-ESig_K_t = reshape(ESig_K_t,Size,XPts);
+ESig_K_t = reshape(ESig_K_t,Size_t,XPts);
 ESig_K_T = sum(abs(ESig_K),2);
-ESig_K_T = reshape(ESig_K_T,Size,XPts);
+ESig_K_T = reshape(ESig_K_T,Size_T,XPts);
 VMax1 = max(max(ESig_K_t));
 VMax2 = max(max(ESig_K_T));
 NCont = 50;
@@ -87,7 +88,7 @@ saveas(gcf, strcat(Folder, 'WaveVectCut'), 'emf');
 % IFT to spatial domain
 ESig_X_Cut = ifft(ESig_K_Cut,[],3);
 ESig_t = ESig_X_Cut(:,:,1);
-ESig_t = reshape(ESig_t,Size,Size);
+ESig_t = reshape(ESig_t,Size_T,Size_t);
 % ESig_t = interp2(tAxis,tauAxis',ESig_t,tAxis,tAxis');
 
 % TI-FWM signal

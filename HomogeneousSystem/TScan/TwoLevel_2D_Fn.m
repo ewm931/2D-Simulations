@@ -1,3 +1,4 @@
+function [] = TwoLevel_2D_Fn(Index)
 %% Numerically simulate 2D spcectrum
 % Simple 2-level system. Phase matching is implemented.
 % Changing the pulse duration, time step and total time can be tricky.
@@ -12,7 +13,7 @@
 % specific x-position is passed as a variable to enable parallel execution
 % of the loop.
 
-clear all;% clc;
+% clear all;% clc;
 
 meV2Hz = 241.79895E9*2*pi;      % hbar
 
@@ -25,12 +26,7 @@ XPts = 101;          % # of points along X axis
 dx = 0.05;
 XAxis1 = -0.5*dx*(XPts-1):dx:0.5*dx*(XPts-1);
 XAxis = ifftshift(XAxis1);
-dk = 1/(max(XAxis)-min(XAxis));
-kMax = 1/dx;
-kAxis = 0:dk:kMax;
 k_pulse = [-4;1;-1];
-dlmwrite('kAxis.dat',kAxis,'\t');
-dlmwrite('WVect.dat',k_pulse,'\t');
 
 % Decay in X
 wX = 1;
@@ -39,19 +35,53 @@ AmpX = exp(-(XAxis./wX).^2);
 % plot(XAxis,AmpX);
 
 % Define T and t axes
-Size = 100;
+Size_t = 20;
 tStep = 1E-13;
-tAxis = 0:tStep:(Size-1)*tStep;
-FStep = 1/tAxis(end);
-EgyStep = FStep*2*pi/meV2Hz;
-EgyAxis = -EgyStep*(Size/2):EgyStep:EgyStep*(Size/2-1);
-Egy_t = EgyAxis;
-TAxis = tAxis;
-Egy_T = EgyAxis';
-dlmwrite('Egy_t.dat',Egy_t,'\t');
-dlmwrite('Egy_capT.dat',Egy_T,'\t');
-dlmwrite('tAxis.dat',tAxis,'\t');
-dlmwrite('capTAxis.dat',TAxis,'\t');
+tAxis = 0:tStep:(Size_t-1)*tStep;
+Size_T = 10;
+TStep = 1E-13;
+TAxis = 0:TStep:(Size_T-1)*TStep;
+
+switch Index
+    case 0
+        PhaseA = 0;
+        PhaseB = 0;
+        
+        % Define k axis
+        dk = 1/(max(XAxis)-min(XAxis));
+        kMax = 1/dx;
+        kAxis = 0:dk:kMax;
+        dlmwrite('kAxis.dat',kAxis,'\t');
+        dlmwrite('WVect.dat',k_pulse,'\t');
+        
+        % Define frequency/energy axes
+        F_tStep = 1/tAxis(end);
+        Egy_tStep = F_tStep*2*pi/meV2Hz;
+        Egy_tAxis = -Egy_tStep*(Size_t/2):Egy_tStep:Egy_tStep*(Size_t/2-1);
+        Egy_t = Egy_tAxis;
+        
+        F_TStep = 1/TAxis(end);
+        Egy_TStep = F_TStep*2*pi/meV2Hz;
+        Egy_TAxis = -Egy_TStep*(Size_T/2):Egy_TStep:Egy_TStep*(Size_T/2-1);
+        Egy_T = Egy_TAxis;
+        
+        dlmwrite('Egy_t.dat',Egy_t,'\t');
+        dlmwrite('Egy_capT.dat',Egy_T,'\t');
+        dlmwrite('tAxis.dat',tAxis,'\t');
+        dlmwrite('capTAxis.dat',TAxis,'\t');
+        
+    case 1
+        PhaseA = pi;
+        PhaseB = 0;
+        
+    case 2
+        PhaseA = pi;
+        PhaseB = pi;
+        
+    case 3
+        PhaseA = 0;
+        PhaseB = pi;
+end
 
 tMax = tAxis(end);     % Maximum scan time for tau
 
@@ -62,14 +92,14 @@ TimeStart = -7E-13;
 
 % Define matrix for final Y value
 NVar = 3;
-Y_All = zeros(Size,Size,NVar,XPts);
+Y_All = zeros(Size_T,Size_t,NVar,XPts);
 y0_1 = zeros(NVar,1);
 
 % Define tolerance for ode
 options = odeset('RelTol',1e-4,'AbsTol',1e-8);
 tic;
 
-for j = 1:Size
+for j = 1:Size_T
     T = TAxis(j);
     Pos2 = Pos1 + tau;
     Pos3 = Pos2 + T;
@@ -78,6 +108,8 @@ for j = 1:Size
 
     parfor k = 1:XPts
         Phase = 2*pi*XAxis(k).*k_pulse;
+        Phase(1) = Phase(1) + PhaseA;
+        Phase(2) = Phase(2) + PhaseB;
         XAmp = AmpX(k);
         y0 = cat(1,y0_1,Phase,PosMat,XAmp);
         [Time1,Y1] = ode23(@timeEvol_2Lvl,[TimeStart,TimeMax],y0,options);
@@ -106,9 +138,11 @@ Pol3_X = Y_All(:,:,2,:) - 1i*Y_All(:,:,3,:);
 
 ESig_X = 1i*Pol3_X;
 
-dlmwrite('ESig_X0.dat',ESig_X,'\t');
+OutFile = strcat('ESig_X',num2str(Index),'.dat');
+dlmwrite(OutFile,ESig_X,'\t');
 % size(ESig_X)
 toc;
+end
 % ESig_K = fft(ESig_X,[],4);
 % proj1 = sum(sum(abs(ESig_K),2),1);
 % proj1 = reshape(proj1,1,[]);

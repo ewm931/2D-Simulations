@@ -17,14 +17,14 @@ dt = 1.5E-13;       % Pulse width in s
 E = 5E-2*pi;        % Pulse area
 
 % System paramters
-g01 = 0.4*meV2Hz;
+g01 = 2*meV2Hz;
 G1 = 0.2*meV2Hz;
 dw = 0*meV2Hz;
 
 % Define MBE variables
 EIS = 0*meV2Hz;
 EID = 0*meV2Hz;
-L = -0.5*(1/(dt*sqrt(pi)));         % Local field factor
+L = 0.1*(1/(dt*sqrt(pi)));         % Local field factor
 
 % Define real and imaginary parts of E-field. Include amplitude along
 % X-axis
