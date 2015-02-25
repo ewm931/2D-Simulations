@@ -14,7 +14,19 @@
 
 clear all;% clc;
 
-meV2Hz = 241.79895E9*2*pi;      % hbar
+global mu dt E BohrRad
+
+meV2Hz = 241.79895E9*2*pi;      % 1/hbar
+mu = 1.4E6;           % Actually mu/hbar
+dt = 1.5E-13;       % Pulse width in s
+E = 5E-2*pi/mu;        % Peak electric field amplitude
+
+% Normalization constants (all in SI units)
+hbar = 1.054572E-34;    % J s
+BohrRad = 8.3E-9;       % 10 nm
+Res_w = 2*pi*3.75E14;   % Resonance angular frequency
+c = 2.9979246E8;        % m/s
+e0 = 8.8541878E-12;     % epsilon0 (F/m)
 
 %% Solve OBE's during tau
 
@@ -27,9 +39,13 @@ tAxis = 0:tStep:(Size-1)*tStep;
 FStep = 1/tAxis(end);
 EgyStep = FStep*2*pi/meV2Hz;
 EgyAxis = -EgyStep*(Size/2):EgyStep:EgyStep*(Size/2-1);
-dlmwrite('Egy_t.dat',EgyAxis,'\t');
-dlmwrite('tAxis.dat',tAxis,'\t');
 
+tPulse = tAxis(Size/2+1);
+E_R = E*(1/(dt*sqrt(pi)))*exp(-((tAxis-tPulse)/dt).^2);
+E_R = ifftshift(E_R);
+E_R_w = fftshift(fft(E_R));
+% figure(100);
+% plot(tAxis,E_R);
 % FRange = EgyRange*meV2Hz/(2*pi);% Total energy range
 tMax = tAxis(end);     % Maximum scan time for tau
 
@@ -40,7 +56,7 @@ TimeStart = -7E-13;
 y0_1 = [0;0;0];
 
 % Define tolerance for ode
-options = odeset('RelTol',1e-4,'AbsTol',1e-8);
+options = odeset('RelTol',1e-6,'AbsTol',1e-12);
 
 TimeMax = Pos + tMax + 1E-12;
 PosMat = Pos;
@@ -74,11 +90,20 @@ title('Im(\rho_{01})');
 % Save 3rd order polarization (sigma_10)
 Pol = Y(:,2) - 1i*Y(:,3);
 
-ESig = 1i*Pol;
-
-dlmwrite('ESig.dat',ESig,'\t');
+ESig = 1i*hbar*mu*Res_w*(1/(2*c*e0*pi*BohrRad^2))*Pol;
 
 ESig_w = fftshift(fft(ESig));
 
+% E_Tot = E_R' + ESig;
+E_Tot_w =  E_R_w' + ESig_w;
+Trans_Int = abs(E_Tot_w).^2;
+Inc_Int = abs(E_R_w').^2;
+Abs_Int = Inc_Int - Trans_Int;
 figure(3);
-plot(EgyAxis,abs(ESig_w));
+plot(EgyAxis,Abs_Int);
+figure(4);
+plot(EgyAxis,Inc_Int,EgyAxis,Trans_Int);
+
+% figure(5);
+% plot(tAxis,ESig,tAxis,
+
